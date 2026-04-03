@@ -52,7 +52,7 @@ public class EnergyConsumptionTracker {
         }
     }
 
-    // Initialize cities (same values as C++ sample)
+    
     private static void initializeCityDatabase() {
         cityDatabase.put("Delhi", new City("Delhi", 2, 7.5, 4200, 190, 88.5, 19800000));
         cityDatabase.put("Mumbai", new City("Mumbai", 1.8, 7.2, 4100, 185, 85.2, 20400000));
@@ -161,7 +161,30 @@ public class EnergyConsumptionTracker {
             System.out.println("Maximize daylight : keep lights off during daytime.");
             System.out.println("Use energy star appliances : long-term massive savings.");
             System.out.println("Track usage monthly : small corrections = big results.\n");
+            exportBillReport();
         }
+        void exportBillReport() {
+            City cityData = cityDatabase.getOrDefault(city, null);
+            if (cityData == null) return;
+
+            double waterBill = waterConsumed * cityData.waterCostPerLiter;
+            double electricityBill = electricityConsumed * cityData.electricityCostPerUnit;
+
+            String filename = username + "_bill_report.txt";
+            try (PrintWriter pw = new PrintWriter(new FileWriter(filename))) {
+                pw.println("===== Bill Report =====");
+                pw.println("User: " + username);
+                pw.println("City: " + city);
+                pw.println("Electricity: " + electricityConsumed + " units — Rs. " + moneyFmt.format(electricityBill));
+                pw.println("Water: " + waterConsumed + " liters — Rs. " + moneyFmt.format(waterBill));
+                pw.println("Total: Rs. " + moneyFmt.format(electricityBill + waterBill));
+                pw.println("Status: " + (billPaid ? "Paid" : "PENDING"));
+                System.out.println("\nReport exported to: " + filename);
+            } catch (IOException e) {
+                System.out.println("Error exporting report: " + e.getMessage());
+            }
+        }
+    
     }
 
     // Organization class
@@ -212,9 +235,28 @@ public class EnergyConsumptionTracker {
             System.out.println("\n--- Past 5 Months Consumption ---");
             System.out.printf("%-10s %-20s %-20s%n", "Month", "Electricity (units)", "Water (liters)");
             System.out.println("------------------------------------------------------");
+            
+            int totalElec = 0, totalWater = 0; 
+            
+            
             for (int i = 0; i < 5; i++) {
                 System.out.printf("%-10s %-20d %-20d%n", "Month " + (i + 1), electricity[i], water[i]);
+                totalElec += electricity[i];
+                totalWater += water[i];
             }
+
+            
+            double avgElec = totalElec / 5.0;
+            double avgWater = totalWater / 5.0;
+            System.out.printf("%nAverage Monthly Electricity: %.1f units%n", avgElec);
+            System.out.printf("Average Monthly Water: %.1f liters%n", avgWater);
+
+            
+            if (avgElec > 1000)
+                System.out.println("WARNING: Average electricity usage exceeds recommended organizational limit.");
+            if (avgWater > 20000)
+                System.out.println("WARNING: Average water usage exceeds recommended organizational limit.");
+
             System.out.println();
             System.out.println("----WANT A SUSTAINABLE ORGANISATION? FOLLOW THESE STEPS TO CONSERVE ENERGY----\n");
             System.out.println("Conduct regular energy audits to spot wastage early.");
@@ -265,7 +307,7 @@ public class EnergyConsumptionTracker {
         }
     }
 
-    // Compare two cities
+    
     private static void compareCities(Scanner console) {
         System.out.println("\nEnter First City Name:");
         String city1 = console.nextLine().trim();
@@ -289,8 +331,35 @@ public class EnergyConsumptionTracker {
         System.out.printf("%-20s %-20.1f %-20.1f%n", "Pollution Index", c1.pollutionIndex, c2.pollutionIndex);
         System.out.printf("%-20s %-20d %-20d%n", "Population", c1.population, c2.population);
     }
+    
+    
+    
+    private static void rankCitiesByMetric(Scanner console) {
+        System.out.println("\nRank cities by:");
+        System.out.println("1. Water Cost  2. Electricity Cost  3. Pollution Index  4. Population");
+        System.out.print("Choice: ");
+        String input = console.nextLine().trim();
 
-    // Main menu
+        List<City> cities = new ArrayList<>(cityDatabase.values());
+
+        switch (input) {
+            case "1": cities.sort(Comparator.comparingDouble(c -> c.waterCostPerLiter)); break;
+            case "2": cities.sort(Comparator.comparingDouble(c -> c.electricityCostPerUnit)); break;
+            case "3": cities.sort(Comparator.comparingDouble(c -> c.pollutionIndex)); break;
+            case "4": cities.sort(Comparator.comparingInt(c -> c.population)); break;
+            default: System.out.println("Invalid choice."); return;
+        }
+
+        System.out.printf("%n%-15s %-20s %-20s %-15s %-12s%n",
+            "City", "Water Cost/L", "Elec Cost/Unit", "Pollution Idx", "Population");
+        System.out.println("------------------------------------------------------------------------");
+        for (City c : cities) {
+            System.out.printf("%-15s %-20.2f %-20.2f %-15.1f %-12d%n",
+                c.name, c.waterCostPerLiter, c.electricityCostPerUnit, c.pollutionIndex, c.population);
+        }
+    }
+
+    
     private static void mainMenu() {
         Scanner console = new Scanner(System.in);
         LoginManager loginManager = new LoginManager();
@@ -300,7 +369,8 @@ public class EnergyConsumptionTracker {
             System.out.println("1. Check Household Status");
             System.out.println("2. Check Organizational Status");
             System.out.println("3. General Knowledge Area (City Comparison)");
-            System.out.println("4. Exit");
+            System.out.println("4. Rank Cities by Metric"); 
+            System.out.println("5. Exit");                  
             System.out.print("\nEnter your choice: ");
             String input = console.nextLine().trim();
             try {
@@ -345,16 +415,21 @@ public class EnergyConsumptionTracker {
                 case 3:
                     compareCities(console);
                     break;
-
+                    
                 case 4:
+                    rankCitiesByMetric(console); 
+                    break;
+
+                case 5: 
                     System.out.println("\nThank you for using Energy Consumption Tracker!");
                     break;
 
                 default:
                     System.out.println("Invalid choice! Try again.");
             }
-        } while (choice != 4);
+        } while (choice != 5); 
     }
+    
 
     // Main
     public static void main(String[] args) {
