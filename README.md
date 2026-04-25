@@ -44,9 +44,9 @@ Energy Consumption Tracker is a Java-based console application designed to monit
 
 ## How to Run
 
-Compile:
+Compile: javac EnergyConsumptionTracker.java
 
-Run:
+Run: java EnergyConsumptionTracker
 
 ## Data File Format
 
